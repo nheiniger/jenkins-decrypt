@@ -23,6 +23,7 @@ parser.add_argument("master_key", help="Path to master.key")
 parser.add_argument("hudson_util_secret", help="Path to hudson.util.Secret")
 group.add_argument("-f", "--file", help="File with credentials")
 group.add_argument("-d", "--dir", help="Directory to search")
+parser.add_argument("-v", "--verbose", action="store_true", help="Include errors and warnings")
 args = parser.parse_args()
 
 
@@ -33,7 +34,7 @@ def decrypt_new_password(secret, p):
     iv_length = ((p[0] & 0xff) << 24) | ((p[1] & 0xff) << 16) | ((p[2] & 0xff) << 8) | (p[3] & 0xff)
 
     if iv_length != 16:
-        print("WARN - {} had invalid IV length of {}".format(p, iv_length))
+        vprint("WARN - {} had invalid IV length of {}".format(p, iv_length))
         return None
 
     # Strip the iv length
@@ -62,12 +63,16 @@ def decrypt_new_password(secret, p):
 
 def decrypt_old_password(secret, p):
     # Copying the old code, I have not verified if it works
+    # pycrypto requires that values be a multiple of 16 in length
+    if len(p) % 16 != 0:
+        vprint("WARN - {} had invalid length".format(base64.b64encode(p)))
+        return None
     o = AES.new(secret, AES.MODE_ECB)
     x = o.decrypt(p)
     if MAGIC in x:
         pw = re.findall(b"(.*)" + MAGIC, x)[0]
         return pw.decode("utf-8")
-    print("WARN - Failed to decrypt {}".format(base64.b64encode(p)))
+    vprint("WARN - Failed to decrypt {}".format(base64.b64encode(p)))
     return None
 
 
@@ -90,7 +95,7 @@ def decrypt(password, secret, apiToken=False):
             return decrypted_value
         # Return the md5 hex digest of the secret for the real apiToken
         if len(decrypted_value) != 48:
-            print("WARN - apiToken has incorrect length")
+            vprint("WARN - apiToken has incorrect length")
             return decrypted_value
 
         # The secret value seems to consistently be padded with 16 extra bytes
@@ -125,12 +130,13 @@ def add_attributes(base_str, plugin_tree, **kwargs):
     for key in kwargs:
         attribute = plugin_tree.get(key, None)
         if attribute:
-            base_str = base_str + "{}: {}\n".format(kwargs[key], attribute)
+            base_str = base_str + "{}: {}".format(kwargs[key], attribute)
     return base_str
 
 
 def print_creds_from_plugins(file_tree, secret):
     """Search a file for all plugins and associated values we're interested in."""
+    finding = False
 
     plugins = [
         "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl",
@@ -213,12 +219,16 @@ def print_creds_from_plugins(file_tree, secret):
 
                 # Only print plugin info if we find results
                 if output:
+                    finding = True
                     section_label = "=== {} ===".format(plugin)
-                    sub_label = "\n" + "=" * len(section_label)
-                    print(section_label, sub_label)
-                    print(output, "\n")
+                    print(section_label)
+                    print(output)
             except KeyError:
-                print("WARN - {} didn't have an attribute we need".format(cred))
+                vprint("WARN - {} didn't have an attribute we need".format(cred))
+    if finding:
+        # If we have found something in this file, print a newline to
+        # improve output with -v
+        vprint("")
 
 
 def find_xml_files(directory):
@@ -236,7 +246,13 @@ def parse_xml_file(xml_file):
     try:
         return ET.parse(xml_file).getroot()
     except ParseError:
-        print("WARN - {} contains improperly formatted XML".format(xml_file))
+        vprint("WARN - {} contains improperly formatted XML".format(xml_file))
+
+
+def vprint(print_string):
+    """Verbose print. Only prints if -v is passed"""
+    if args.verbose:
+        print(print_string)
 
 
 def main():
@@ -252,7 +268,7 @@ def main():
     if args.dir:
         all_xml_files = find_xml_files(os.path.realpath(args.dir))
         for xml_file in all_xml_files:
-            print("{}...".format(xml_file))
+            vprint("{}...".format(xml_file))
             credentials_file_tree = parse_xml_file(xml_file)
             if not credentials_file_tree:
                 continue

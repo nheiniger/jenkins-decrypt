@@ -190,18 +190,6 @@ class JenkinsDecrypt():
         """Search a file for all plugins and associated values we're interested in."""
         # username / password
         output_fmt = "{} / {}"
-
-        """
-        These 3 come out of the box now
-        org.jenkinsci.plugins.github__branch__source.GitHubAppCredentials
-        org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials
-        com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl
-
-        Installed a few more:
-        com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsImpl
-        org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl
-        hudson.plugins.ec2.EC2Cloud
-        """
         plugins = [
             "com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl",
             "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl",

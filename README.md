@@ -1,13 +1,14 @@
 jenkins-decrypt
 ===============
 
-Requires python 3
+Requires Python 3
 
 ## About
 The original `decrypt.py` focused on `credentials.xml`, but Jenkins is a magnet for credentials and stores them in places besides `credentials.xml`. This version adds:
-* Support for additional credentials plugins
+* Support for additional plugins that store credentials
+* Support for decryption routine in credentials-plugin 
+* Support for decrypting user api tokens ([works until Jenkins 2.129](https://www.jenkins.io/blog/2018/07/02/new-api-token-system/))
 * Easier to read output (username / password)
-* Support for decrypting user api tokens
 * Ability to search many XML files for credentials
 * XML parsing
 

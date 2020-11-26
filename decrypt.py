@@ -4,7 +4,6 @@ import argparse
 import base64
 import mimetypes
 import os
-import re
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import ParseError
 
@@ -44,6 +43,8 @@ class JenkinsDecrypt():
         """decrypt() function from credentials-plugin
         https://github.com/jenkinsci/credentials-plugin/blob/master/src/main/java/com/cloudbees/plugins/credentials/SecretBytes.java#L200
         """
+        if not data:
+            return None
         try:
             if self.credentials_secret is None:
                 # The ciphertext doesn't have a newline. So let's at least improve output
@@ -123,7 +124,7 @@ class JenkinsDecrypt():
         o = AES.new(self.hudson_secret, AES.MODE_ECB)
         x = o.decrypt(p)
         if self.MAGIC in x:
-            pw = re.findall(b"(.*)" + self.MAGIC, x)[0]
+            pw = x.split(self.MAGIC)[0]
             return pw.decode("utf-8")
         self.vprint(f"WARN - Failed to decrypt {base64.b64encode(p)}")
         return None
@@ -133,7 +134,11 @@ class JenkinsDecrypt():
         if not password or not self.hudson_secret:
             return None
         password = password.strip("{}")
-        p = base64.decodebytes(bytes(password, "utf-8"))
+        try:
+            p = base64.decodebytes(bytes(password, "utf-8"))
+        except base64.binascii.Error as e:
+            self.vprint(f"WARN - this value doesn't appear to be base64. Maybe it's plaintext?\n{password}")
+            return password
 
         # Get payload version
         payload_version = p[0]

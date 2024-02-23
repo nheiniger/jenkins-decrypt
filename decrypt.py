@@ -215,7 +215,9 @@ class JenkinsDecrypt():
             "org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl",
             "org.jenkinsci.plugins.p4.credentials.P4PasswordImpl",
             "org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl",
-            "org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl"
+            "org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl",
+
+            "com.microsoft.azure.util.AzureCredentials"
         ]
 
         # Find, decrypt, and print credentials for each plugin
@@ -305,6 +307,15 @@ class JenkinsDecrypt():
                     elif plugin == "org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl":
                         output = "Secret string: {}".format(
                             self.decrypt(cred.get("secret", None)))
+                        output = self.add_attributes(output, cred, description="Description")
+
+                    # Azure creds
+                    elif plugin == "com.microsoft.azure.util.AzureCredentials":
+                        output = "subscriptionId: {}\nclientId: {}\nclientSecret: {}\ntenant: {}".format(
+                            self.decrypt(cred.get("subscriptionId", None)),
+                            self.decrypt(cred.get("clientId", None)),
+                            self.decrypt(cred.get("clientSecret", None)),
+                            self.decrypt(cred.get("tenant", None)))
                         output = self.add_attributes(output, cred, description="Description")
 
                     # Only print plugin info if we find results

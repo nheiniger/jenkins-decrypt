@@ -24,13 +24,13 @@ class JenkinsDecrypt():
 
     def load_master_key(self, master_key):
         """Read master.key which is used to decrypt instances of ConfidentialKey"""
-        master_key = open(master_key, "rb").read()
+        master_key = open(master_key, "rb").read().strip()
         self.hashed_master_key = sha256(master_key).digest()[:16]
 
 
     def load_credentials_confidential_key(self, path, key_name):
         """Read and decrypt an instance of ConfidentialKey"""
-        secret_key_file = open(path, "rb").read()
+        secret_key_file = open(path, "rb").read().strip()
         o = AES.new(self.hashed_master_key, AES.MODE_ECB)
         secret = o.decrypt(secret_key_file)
 
